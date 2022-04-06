@@ -126,14 +126,10 @@ class DA:
                 print(f'Beta: {Beta} completeness:{com}')
         self.P=P
         return self.Y,P
-    def plot(self,random_color=False):
-    #plt.figure(figsize=(10,8))
-        if random_color:
-            c=np.array([[np.random.rand(),np.random.rand(),np.random.rand()] for i in range(self.K)])
-        else:
-            c='red'
-        plt.scatter(self.X[0,:],self.X[1,:],marker='.');plt.grid()
-        plt.scatter(self.Y[0,:],self.Y[1,:],marker='*',c=c,linewidths=2)
+    def plot(self,size=(12,10),random_color=False):
+	    plt.figure(figsize=size)
+	    plt.scatter(self.X[0,:],self.X[1,:],marker='.');plt.grid()
+	    plt.scatter(self.Y[0,:],self.Y[1,:],marker='*',c='red',linewidths=2)
     def return_cost(self):
         return np.linalg.norm(self.X-(self.Y@self.P),'fro')/np.linalg.norm(self.X,'fro')
     
