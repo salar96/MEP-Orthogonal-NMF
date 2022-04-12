@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -10,20 +10,28 @@ import warnings
 import timeit as dt
 import pandas as pd
 from sklearn.preprocessing import normalize
+from utils import divide
 # add robustness where repeated data is present
 class DA:
     def __init__(self,K,NORM='L2',TOL=1e-4,MAX_ITER=300,GROWTH_RATE=1.05,
-               PURTURB_RATIO=0.01,BETA_INIT=1e-4,BETA_TOL=1e-6,verbos=0):
+               PURTURB_RATIO=0.01,BETA_INIT=1e-4,BETA_TOL=1e-6,verbos=0,NORMALIZE=False):
         self.K=K;self.TOL=TOL;self.MAX_ITER=MAX_ITER;self.BETA_INIT=BETA_INIT
         self.GROWTH_RATE=GROWTH_RATE;self.PURTURB_RATIO=PURTURB_RATIO;self.BETA_TOL=BETA_TOL
-        self.CONSTRAINED=False;self.VERBOS=verbos;self.NORM=NORM
+        self.CONSTRAINED=False;self.VERBOS=verbos;self.NORM=NORM;self.NORMALIZE=NORMALIZE
         print('DA model was created successfully')
     def fit(self,X,**kwargs):
+        m, n = np.shape(X)
+        l = np.sum(X * X, axis = 0, keepdims = True)
+        l_sqrt = np.sqrt(l)
+        X_norm = divide (X, l_sqrt)
         self.d,self.n=X.shape
-        self.X=X
-        if (X<0).any() and self.NORM=='KL':
+        if self.NORMALIZE:
+            self.X=X_norm
+        else:
+            self.X=X        
+        if (self.X<0).any() and self.NORM=='KL':
             raise Exception('Your input matrix contains negative values. Try using another norm')
-        self.Data_points=np.repeat(X[:,:,np.newaxis],self.K,axis=2)
+        self.Data_points=np.repeat(self.X[:,:,np.newaxis],self.K,axis=2)
         if 'Px' in kwargs:
             self.Px=kwargs['Px']
         else:
@@ -120,16 +128,22 @@ class DA:
                 
                 break
             Beta=Beta*self.GROWTH_RATE
-            PURTURB=self.PURTURB_RATIO*(np.random.rand(self.d,self.K))*self.Y
+            PURTURB=self.PURTURB_RATIO*(2*np.round(np.random.rand(self.d,self.K))-1)*(np.max(self.Y)-np.min(self.Y))
             self.Y=self.Y+PURTURB
             if self.VERBOS:
                 print(f'Beta: {Beta} completeness:{com}')
-        self.P=P
-        return self.Y,P
+        self.P=np.round(P)
+        w=np.round(self.P.copy())
+        for i in range(self.n):
+            id=np.where(w[:,i]==1)[0]
+            norm1 = np.linalg.norm(self.Y[:,id])
+            w[id,i]=(self.X[:,i].T @ self.Y[:,id])/norm1/norm1
+        self.P=w    
+        return self.Y,self.P
     def plot(self,size=(12,10),random_color=False):
-	    plt.figure(figsize=size)
-	    plt.scatter(self.X[0,:],self.X[1,:],marker='.');plt.grid()
-	    plt.scatter(self.Y[0,:],self.Y[1,:],marker='*',c='red',linewidths=2)
+        plt.figure(figsize=size)
+        plt.scatter(self.X[0,:],self.X[1,:],marker='.');plt.grid()
+        plt.scatter(self.Y[0,:],self.Y[1,:],marker='*',c='red',linewidths=2)
     def return_cost(self):
         return np.linalg.norm(self.X-(self.Y@self.P),'fro')/np.linalg.norm(self.X,'fro')
     
@@ -152,4 +166,3 @@ if __name__=='__main__':
     model=DA(clus_num,NORM='KL',GROWTH_RATE=1.5,BETA_INIT=1e-1,BETA_TOL=1e-16,PURTURB_RATIO=0.2,verbos=0)
     model.fit(X);Y,P=model.classify();model.plot()
     print(model.return_cost())
-
