@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -28,7 +28,7 @@ class DA:
         if self.NORMALIZE:
             self.X=X_norm
         else:
-            self.X=X		
+            self.X=X        
         if (self.X<0).any() and self.NORM=='KL':
             raise Exception('Your input matrix contains negative values. Try using another norm')
         self.Data_points=np.repeat(self.X[:,:,np.newaxis],self.K,axis=2)
@@ -132,8 +132,14 @@ class DA:
             self.Y=self.Y+PURTURB
             if self.VERBOS:
                 print(f'Beta: {Beta} completeness:{com}')
-        self.P=P
-        return self.Y,P
+        self.P=np.round(P)
+        w=np.round(self.P.copy())
+        for i in range(self.n):
+            id=np.where(w[:,i]==1)[0]
+            norm1 = np.linalg.norm(self.Y[:,id])
+            w[id,i]=(self.X[:,i].T @ self.Y[:,id])/norm1/norm1
+        self.P=w    
+        return self.Y,self.P
     def plot(self,size=(12,10),random_color=False):
         plt.figure(figsize=size)
         plt.scatter(self.X[0,:],self.X[1,:],marker='.');plt.grid()
