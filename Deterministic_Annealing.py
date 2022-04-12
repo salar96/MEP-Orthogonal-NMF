@@ -36,7 +36,8 @@ class DA:
             self.Px=kwargs['Px']
         else:
             self.Px=np.array([1 for i in range(self.n)])/self.n
-        self.Y=np.repeat(np.mean(self.X,axis=1)[:,np.newaxis],self.K,axis=1);
+        #self.Y=np.repeat(np.mean(self.X,axis=1)[:,np.newaxis],self.K,axis=1);
+        self.Y=self.X.copy()[:,np.random.randint(10, size=self.K)]
         if 'Lambdas' in kwargs:
             self.CONSTRAINED=True
             self.Lambdas=kwargs['Lambdas']
@@ -48,7 +49,8 @@ class DA:
         print('Class DA fitted on DATA')
     def classify(self):
         start=dt.default_timer()
-        P_old=np.random.rand(self.K,self.n)
+        #P_old=np.random.rand(self.K,self.n)
+        Y_old=np.random.rand(self.d,self.K)
         Beta=self.BETA_INIT
         START_OK=0
         while True: #beta loop
@@ -114,21 +116,20 @@ class DA:
                         self.Y=((self.X*self.Px)@P.T)/(Py+1e-6)
                     else:
                         raise Exception("Wrong Norm!")
-                    if np.linalg.norm(P-P_old)/np.linalg.norm(P_old)<self.TOL:
+                    if np.linalg.norm(self.Y-Y_old)/np.linalg.norm(Y_old)<self.TOL:
                         break
                     if counter>self.MAX_ITER:
                         warnings.warn("MAX ITER REACHED: Y LOOP")
                         break
-                    P_old=P
+                    Y_old=self.Y
                     counter=counter+1
             com=(np.count_nonzero(np.abs(P-1)<1e-5)/self.n)
             if (1-com)<self.BETA_TOL:
                 time=dt.default_timer()-start
                 print(f"Beta Max reached: {Beta} completeness:{com} time:{time}")
-                
                 break
             Beta=Beta*self.GROWTH_RATE
-            PURTURB=self.PURTURB_RATIO*(2*np.round(np.random.rand(self.d,self.K))-1)*(np.max(self.Y)-np.min(self.Y))
+            PURTURB=self.PURTURB_RATIO*(np.random.rand(self.d,self.K)-0.5)*(np.max(self.Y)-np.min(self.Y))
             self.Y=self.Y+PURTURB
             if self.VERBOS:
                 print(f'Beta: {Beta} completeness:{com}')
