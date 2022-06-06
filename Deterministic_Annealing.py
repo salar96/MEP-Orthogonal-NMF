@@ -3,41 +3,63 @@
 
 # In[ ]:
 
-
 import numpy as np
 from matplotlib import pyplot as plt
+import numpy.matlib as matlib
 import warnings
 import timeit as dt
 import pandas as pd
 from sklearn.preprocessing import normalize
 from utils import divide
-# add robustness where repeated data is present
+from scipy.linalg import eigh
+def a_split(a):
+    
+    if a.shape[1]==2:
+        ss=[a]
+    else:
+        ss=np.hsplit(a, int(a.shape[1]/2))
+    
+    l=[np.linalg.norm(s[:,1]-s[:,0])/np.linalg.norm(s[:,0])<1e-1 for s in ss]
+    
+    for index , obj in enumerate(l):
+        if obj==False:
+            ss[index]=np.repeat(ss[index],2,axis=1); 
+            
+    out=np.concatenate(ss,axis=1)
+    return out
+
+
+
+
 class DA:
-    def __init__(self,K,NORM='L2',TOL=1e-4,MAX_ITER=300,GROWTH_RATE=1.05,
-               PURTURB_RATIO=0.01,BETA_INIT=1e-4,BETA_TOL=1e-6,verbos=0,NORMALIZE=False):
+    def __init__(self,K,NORM='L2',TOL=1e-4,MAX_ITER=1000,GROWTH_RATE=1.05,
+               PURTURB_RATIO=0.01,BETA_INIT=1e-6,BETA_TOL=1e-6,verbos=0,NORMALIZE=False):
+        # K: number of clusters Norm: the type of norm applied as the distance measure
+        # TOL: The relative tolerence applied as the stopping criteria
+        # Max_ITER: maximum number of iterations applied as the stopping criteria
         self.K=K;self.TOL=TOL;self.MAX_ITER=MAX_ITER;self.BETA_INIT=BETA_INIT
         self.GROWTH_RATE=GROWTH_RATE;self.PURTURB_RATIO=PURTURB_RATIO;self.BETA_TOL=BETA_TOL
         self.CONSTRAINED=False;self.VERBOS=verbos;self.NORM=NORM;self.NORMALIZE=NORMALIZE
         print('DA model was created successfully')
+
+    #___________________Fitting the model on data___________________
+
     def fit(self,X,**kwargs):
-        m, n = np.shape(X)
-        l = np.sum(X * X, axis = 0, keepdims = True)
-        l_sqrt = np.sqrt(l)
-        X_norm = divide (X, l_sqrt)
-        self.d,self.n=X.shape
-        if self.NORMALIZE:
-            self.X=X_norm
-        else:
-            self.X=X        
+        # **kwargs:
+        # px: data points probability array
+        # lambdas: for the constrained codevectors probability array
+        m, self.n = np.shape(X)
+        self.X=X
+        self.d=m
         if (self.X<0).any() and self.NORM=='KL':
             raise Exception('Your input matrix contains negative values. Try using another norm')
-        self.Data_points=np.repeat(self.X[:,:,np.newaxis],self.K,axis=2)
+        
         if 'Px' in kwargs:
             self.Px=kwargs['Px']
         else:
             self.Px=np.array([1 for i in range(self.n)])/self.n
-        #self.Y=np.repeat(np.mean(self.X,axis=1)[:,np.newaxis],self.K,axis=1);
-        self.Y=self.X.copy()[:,np.random.randint(10, size=self.K)]
+        self.Y=np.repeat((self.X@self.Px).reshape(m,1),2,axis=1)
+        
         if 'Lambdas' in kwargs:
             self.CONSTRAINED=True
             self.Lambdas=kwargs['Lambdas']
@@ -46,18 +68,33 @@ class DA:
         else:
             self.Lambdas=np.array([1 for i in range(self.K)])/self.K
         self.Ethas=self.Lambdas
+        ################### dealing with beta_init here
+        #self.BETA_INIT=0.00000001/(2*np.max(np.abs(eigh(np.cov(X), eigvals_only=True))))
+
         print('Class DA fitted on DATA')
+    
     def classify(self):
+        y_list=[] # a list to save codevectors over betas
+        beta_list=[] # list of all betas
+        y_list.append(self.Y);beta_list.append(0)
         start=dt.default_timer()
-        #P_old=np.random.rand(self.K,self.n)
-        Y_old=np.random.rand(self.d,self.K)
+        
+        k_n=1 # at first we just have one codevector
+        self.Py=np.array([0.5,0.5]) #all the points belong to this cluster
+        Y_old=np.random.rand(self.d,k_n*2)*1e6
+        
         Beta=self.BETA_INIT
         START_OK=0
+
+        
+        
         while True: #beta loop
             
             counter=1
             while True: #y p etha loop
-                Cluster_points=np.repeat(self.Y[:,np.newaxis,:],self.n,axis=1)+1e-6
+                
+                self.Data_points=np.repeat(self.X[:,:,np.newaxis],self.Y.shape[1],axis=2)
+                Cluster_points=np.repeat(self.Y[:,np.newaxis,:],self.n,axis=1)
                 if self.NORM=='KL':
                     d=np.log(Cluster_points/(self.Data_points+1e-6))
                     #d[np.where(d==-np.inf)]=0
@@ -67,80 +104,72 @@ class DA:
                 else:
                     raise Exception("Wrong Norm!")
                 D=np.sum(D,axis=0).T
+                
                 counter2=1
                 if self.CONSTRAINED:
-                    while True:
-                        p=np.exp(-D*Beta)
-                        if (np.count_nonzero(np.abs(p-1)<1e-5)/(self.K*self.n))<0.9 and not START_OK:
-                            
-                            START_OK=1
-                        p=p*np.repeat(self.Ethas[:,np.newaxis],self.n,axis=1)
-                        J=np.where(p.sum(axis=0)==0)[0]
-                        I=np.argmin(D[:,J],axis=0)
-                        p[I,J]=[1 for i in range(len(J))]
-                        P=p/p.sum(axis=0)
-                        Py=P@self.Px
-                        self.Ethas=(self.Ethas*self.Lambdas)/(Py+1e-6)
-                        if np.linalg.norm(P-P_old)/np.linalg.norm(P_old)<self.TOL:
-                            break
-                        if counter2>self.MAX_ITER:
-                            warnings.warn("MAX ITER REACHED: ETHAS LOOP")
-                            break
-                        P_old=P
-                        counter2+=1
-                    self.Ethas=self.Ethas/self.Ethas.sum()
-                    self.Y=((self.X*self.Px)@P.T)/(Py+1e-6)
-                    PURTURB=self.PURTURB_RATIO*np.random.rand(self.d,self.K)*self.Y
-                    self.Y=self.Y+PURTURB
-                    if np.linalg.norm(P-P_old)/np.linalg.norm(P_old)<self.TOL:
-                        break
-                    if counter>self.MAX_ITER:
-                        warnings.warn("MAX ITER REACHED: Y LOOP")
-                        break
-                    P_old=P
-                    counter=counter+1
+                    print('not ok')
                 else:
                     p=np.exp(-D*Beta)
-                    if (np.count_nonzero(np.abs(p-1)<1e-5)/(self.K*self.n))<0.9 and not START_OK:
-                        
+                    if not START_OK:
+                        print(f"beta init:{self.BETA_INIT} with com:{np.count_nonzero(np.abs(p-1)<1e-5)/(self.K*self.n)}")
                         START_OK=1
                     J=np.where(p.sum(axis=0)==0)[0]
-                    I=np.argmin(D[:,J],axis=0)
-                    p[I,J]=[1 for i in range(len(J))]
-                    P=p/p.sum(axis=0)
-                    Py=P@self.Px
-                    self.Ethas=self.Ethas/self.Ethas.sum()
+                    #I=np.argmin(D[:,J],axis=0)
+                    #p[I,J]=[1 for i in range(len(J))]
+                    I=np.min(D[:,J],axis=0)
+                    p[:,J]=np.logical_not(D[:,J]-matlib.repmat(I,D.shape[0],1)).astype(int)
+                    P=np.round(p/p.sum(axis=0),6)
+
+                    Py=np.round(P@self.Px,6)
+                    
                     if self.NORM=='KL':
                         self.Y=np.exp(((np.log(self.X+1e-6)*self.Px)@P.T)/(Py+1e-6))
                     elif self.NORM=='L2':
-                        self.Y=((self.X*self.Px)@P.T)/(Py+1e-6)
+                        self.Y=((self.X*self.Px)@P.T)/(Py)
                     else:
                         raise Exception("Wrong Norm!")
-                    if np.linalg.norm(self.Y-Y_old)/np.linalg.norm(Y_old)<self.TOL:
-                        break
+                    
+                    if self.Y.shape==Y_old.shape:
+                        if np.linalg.norm(self.Y-Y_old)/np.linalg.norm(Y_old)<self.TOL:
+                            break
                     if counter>self.MAX_ITER:
                         warnings.warn("MAX ITER REACHED: Y LOOP")
                         break
                     Y_old=self.Y
                     counter=counter+1
+            
+ 
             com=(np.count_nonzero(np.abs(P-1)<1e-5)/self.n)
-            if (1-com)<self.BETA_TOL:
+            beta_list.append(Beta)
+            y_list.append(self.Y)
+            if Beta>self.BETA_TOL:
+            #if (1-com)<self.BETA_TOL:
                 time=dt.default_timer()-start
                 print(f"Beta Max reached: {Beta} completeness:{com} time:{time}")
                 break
+           
             Beta=Beta*self.GROWTH_RATE
-            PURTURB=self.PURTURB_RATIO*(np.random.rand(self.d,self.K)-0.5)*(np.max(self.Y)-np.min(self.Y))
+            
+            ###################################################
+            
+            
+            self.Y=a_split(self.Y)
+            print(f'number of codevectors is {self.Y.shape[1]/2}',Beta)
+            #if self.Y.shape[1]/2>self.K:
+                #break
+            ###################################################            
+
+            #___________________PURTURBATION__________________________
+
+            #PURTURB=self.PURTURB_RATIO*(np.random.rand(self.d,self.K)-0.5)*(np.max(self.X)-np.min(self.X))
+            sp=np.array_split(self.X, self.Y.shape[1],axis=1)
+            PURTURB=self.PURTURB_RATIO*np.vstack([np.mean(i,axis=1) for i in sp]).T
             self.Y=self.Y+PURTURB
+            #_________________________________________________________
             if self.VERBOS:
                 print(f'Beta: {Beta} completeness:{com}')
-        self.P=np.round(P)
-        w=np.round(self.P.copy())
-        for i in range(self.n):
-            id=np.where(w[:,i]==1)[0]
-            norm1 = np.linalg.norm(self.Y[:,id])
-            w[id,i]=(self.X[:,i].T @ self.Y[:,id])/norm1/norm1
-        self.P=w    
-        return self.Y,self.P
+        self.P=np.round(P) 
+        return self.Y,self.P,beta_list,y_list
     def plot(self,size=(12,10),random_color=False):
         plt.figure(figsize=size)
         plt.scatter(self.X[0,:],self.X[1,:],marker='.');plt.grid()
