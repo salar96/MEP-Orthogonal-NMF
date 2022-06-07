@@ -74,6 +74,7 @@ class DA:
         print('Class DA fitted on DATA')
     
     def classify(self):
+        end_break=0
         y_list=[] # a list to save codevectors over betas
         beta_list=[] # list of all betas
         y_list.append(self.Y);beta_list.append(0)
@@ -82,12 +83,12 @@ class DA:
         k_n=1 # at first we just have one codevector
         self.Py=np.array([0.5,0.5]) #all the points belong to this cluster
         Y_old=np.random.rand(self.d,k_n*2)*1e6
-        
+        P_old=np.random.rand(2,2)
         Beta=self.BETA_INIT
         START_OK=0
-
-        
-        
+        end=0
+        cost_l=[]
+        patience=5
         while True: #beta loop
             
             counter=1
@@ -109,6 +110,7 @@ class DA:
                 if self.CONSTRAINED:
                     print('not ok')
                 else:
+                    
                     p=np.exp(-D*Beta)
                     if not START_OK:
                         print(f"beta init:{self.BETA_INIT} with com:{np.count_nonzero(np.abs(p-1)<1e-5)/(self.K*self.n)}")
@@ -118,14 +120,15 @@ class DA:
                     #p[I,J]=[1 for i in range(len(J))]
                     I=np.min(D[:,J],axis=0)
                     p[:,J]=np.logical_not(D[:,J]-matlib.repmat(I,D.shape[0],1)).astype(int)
-                    P=np.round(p/p.sum(axis=0),6)
-
-                    Py=np.round(P@self.Px,6)
+                    
+                    #p=(p.T*self.Py).T
+                    P=p/p.sum(axis=0)
+                    self.Py=P@self.Px
                     
                     if self.NORM=='KL':
                         self.Y=np.exp(((np.log(self.X+1e-6)*self.Px)@P.T)/(Py+1e-6))
                     elif self.NORM=='L2':
-                        self.Y=((self.X*self.Px)@P.T)/(Py)
+                        self.Y=((self.X*self.Px)@P.T)/(self.Py)
                     else:
                         raise Exception("Wrong Norm!")
                     
@@ -146,17 +149,35 @@ class DA:
             #if (1-com)<self.BETA_TOL:
                 time=dt.default_timer()-start
                 print(f"Beta Max reached: {Beta} completeness:{com} time:{time}")
-                break
+                #break
            
             Beta=Beta*self.GROWTH_RATE
             
             ###################################################
-            
-            
-            self.Y=a_split(self.Y)
-            print(f'number of codevectors is {self.Y.shape[1]/2}',Beta)
-            #if self.Y.shape[1]/2>self.K:
-                #break
+            cost=np.linalg.norm(self.X-(self.Y@P))/np.linalg.norm(self.X)
+            cost_l.append(cost)
+            if self.VERBOS:
+                print(f'Beta: {Beta} cost:{cost}')
+            if not end_break:
+                self.Y=a_split(self.Y)
+            if self.Y.shape[1]/2>=self.K and not end_break:
+                end_break=1
+                print(f"reached the specified number of clusters: {self.Y.shape[1]/2}")
+            if end_break:
+                if len(cost_l)>=patience:
+                    if max(cost_l[-patience:])-min(cost_l[-patience:]) <=1e-4:
+                        break
+                
+            #print(f'number of codevectors is {self.Y.shape[1]/2}',Beta)
+            """
+            if len(set(np.round((self.Y*self.Y).sum(axis=0),1)))>self.K:
+                print('setting the final stage')
+                #self.Y=self.Y[:,[i for i in range(self.Y.shape[1]) if i%2==0]]
+                self.Y=return_uniq(self.Y)
+                end=1
+                Beta=1e2
+             """ 
+   
             ###################################################            
 
             #___________________PURTURBATION__________________________
@@ -166,9 +187,9 @@ class DA:
             PURTURB=self.PURTURB_RATIO*np.vstack([np.mean(i,axis=1) for i in sp]).T
             self.Y=self.Y+PURTURB
             #_________________________________________________________
-            if self.VERBOS:
-                print(f'Beta: {Beta} completeness:{com}')
-        self.P=np.round(P) 
+            
+        print(f'finished,{self.Y.shape[1]/2}')
+        self.P=P
         return self.Y,self.P,beta_list,y_list
     def plot(self,size=(12,10),random_color=False):
         plt.figure(figsize=size)
@@ -176,7 +197,7 @@ class DA:
         plt.scatter(self.Y[0,:],self.Y[1,:],marker='*',c='red',linewidths=2)
     def return_cost(self):
         return np.linalg.norm(self.X-(self.Y@self.P),'fro')/np.linalg.norm(self.X,'fro')
-    
+
     
     
 if __name__=='__main__':
