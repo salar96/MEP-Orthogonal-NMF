@@ -35,14 +35,19 @@ def bifurcate(x,y,p,px,py,beta,purturb):
     pp=np.repeat(pxy.T[np.newaxis,:,:],x.shape[0],axis=0)
     z=xx-yy
     out=np.moveaxis(z.T,1,2)@(pp*z).T
-    l=[i for i in range(pxy.shape[0]) if beta>0.5/eigh(out[i,:,:],eigvals_only=True,subset_by_index=(x.shape[0]-1,x.shape[0]-1))[0]]
-    PURTURB=purturb*(2*np.random.rand(y.shape[0],len(l))-1)
+    #l=[i for i in range(pxy.shape[0]) if beta>0.5/eigh(out[i,:,:],eigvals_only=True,subset_by_index=(x.shape[0]-1,x.shape[0]-1))[0]]
+    l=[beta-0.5/eigh(out[i,:,:],eigvals_only=True,subset_by_index=(x.shape[0]-1,x.shape[0]-1))[0] for i in range(out.shape[0])]
+    l=[i for i in l if i>0]
+    
+    if len(l)!=0:
+        l=np.argmax(l)
+    PURTURB=purturb*y[:,l]
     y_h=np.insert(y,l,y[:,l]+PURTURB,axis=1)
     py_d=py.copy()
     py_d[l]=py_d[l]/2
     py_h=np.insert(py_d,l,py_d[l])
     if y_h.shape!=y.shape:
-        print(f"\nDevision occured: from {y.shape[1]} to {y_h.shape[1]} at {beta}\n")
+        print(f"\nDevision occured: from {y.shape[1]} to {y_h.shape[1]} at {beta}\n")  
     return y_h,py_h
 
 
@@ -137,7 +142,7 @@ class DA:
                         J=np.where(p.sum(axis=0)==0)[0]
                         I=np.argmin(D[:,J],axis=0)
                         p[I,J]=[1 for i in range(len(J))]
-                        p=(p.T*self.Py).T
+                        #p=(p.T*self.Py).T
                         P=p/p.sum(axis=0)
                         self.Py=P@self.Px
                         if P.shape==P_old.shape:
@@ -195,7 +200,6 @@ class DA:
         plt.scatter(self.Y[0,:],self.Y[1,:],marker='*',c='red',linewidths=2)
     def return_cost(self):
         return np.linalg.norm(self.X-(self.Y@self.P),'fro')/np.linalg.norm(self.X,'fro')
-
     
     
 if __name__=='__main__':
