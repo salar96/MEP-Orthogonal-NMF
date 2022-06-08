@@ -28,7 +28,22 @@ def a_split(a):
     out=np.concatenate(ss,axis=1)
     return out
 
-
+def bifurcate(x,y,p,px,py,beta,purturb):
+    xx=np.repeat(x[:,:,np.newaxis],y.shape[1],axis=2)
+    yy=np.repeat(y[:,np.newaxis,:],x.shape[1],axis=1)
+    pxy=p/np.repeat(py[:,np.newaxis],x.shape[1],axis=1)*np.repeat(px[np.newaxis,:],y.shape[1],axis=0)
+    pp=np.repeat(pxy.T[np.newaxis,:,:],x.shape[0],axis=0)
+    z=xx-yy
+    out=np.moveaxis(z.T,1,2)@(pp*z).T
+    l=[i for i in range(pxy.shape[0]) if beta>0.5/eigh(out[i,:,:],eigvals_only=True,subset_by_index=(x.shape[0]-1,x.shape[0]-1))[0]]
+    PURTURB=purturb*(2*np.random.rand(y.shape[0],len(l))-1)
+    y_h=np.insert(y,l,y[:,l]+PURTURB,axis=1)
+    py_d=py.copy()
+    py_d[l]=py_d[l]/2
+    py_h=np.insert(py_d,l,py_d[l])
+    if y_h.shape!=y.shape:
+        print(f"\nDevision occured: from {y.shape[1]} to {y_h.shape[1]} at {beta}\n")
+    return y_h,py_h
 
 
 class DA:
@@ -58,7 +73,7 @@ class DA:
             self.Px=kwargs['Px']
         else:
             self.Px=np.array([1 for i in range(self.n)])/self.n
-        self.Y=np.repeat((self.X@self.Px).reshape(m,1),2,axis=1)
+        self.Y=np.repeat((self.X@self.Px).reshape(m,1),1,axis=1)
         
         if 'Lambdas' in kwargs:
             self.CONSTRAINED=True
@@ -81,7 +96,7 @@ class DA:
         start=dt.default_timer()
         
         k_n=1 # at first we just have one codevector
-        self.Py=np.array([0.5,0.5]) #all the points belong to this cluster
+        self.Py=np.array([1]) #all the points belong to this cluster
         Y_old=np.random.rand(self.d,k_n*2)*1e6
         P_old=np.random.rand(2,2)
         Beta=self.BETA_INIT
@@ -111,20 +126,28 @@ class DA:
                     print('not ok')
                 else:
                     
-                    p=np.exp(-D*Beta)
-                    if not START_OK:
-                        print(f"beta init:{self.BETA_INIT} with com:{np.count_nonzero(np.abs(p-1)<1e-5)/(self.K*self.n)}")
-                        START_OK=1
-                    J=np.where(p.sum(axis=0)==0)[0]
-                    #I=np.argmin(D[:,J],axis=0)
-                    #p[I,J]=[1 for i in range(len(J))]
-                    I=np.min(D[:,J],axis=0)
-                    p[:,J]=np.logical_not(D[:,J]-matlib.repmat(I,D.shape[0],1)).astype(int)
-                    
-                    #p=(p.T*self.Py).T
-                    P=p/p.sum(axis=0)
-                    self.Py=P@self.Px
-                    
+                    while True:
+                        p=np.exp(-D*Beta)
+                        if not START_OK:
+                            print(f"beta init:{self.BETA_INIT} with com:{np.count_nonzero(np.abs(p-1)<1e-5)/(k_n*self.n)}")
+                            START_OK=1 
+                        #I=np.min(D[:,J],axis=0)
+                        #p[:,J]=np.logical_not(D[:,J]-matlib.repmat(I,D.shape[0],1)).astype(int)
+                        
+                        J=np.where(p.sum(axis=0)==0)[0]
+                        I=np.argmin(D[:,J],axis=0)
+                        p[I,J]=[1 for i in range(len(J))]
+                        p=(p.T*self.Py).T
+                        P=p/p.sum(axis=0)
+                        self.Py=P@self.Px
+                        if P.shape==P_old.shape:
+                            if np.linalg.norm(P-P_old)/np.linalg.norm(P_old)<self.TOL:
+                                break
+                        if counter>self.MAX_ITER:
+                            warnings.warn("MAX ITER REACHED: py LOOP")
+                            break
+                        P_old=P
+                        counter2=counter2+1
                     if self.NORM=='KL':
                         self.Y=np.exp(((np.log(self.X+1e-6)*self.Px)@P.T)/(Py+1e-6))
                     elif self.NORM=='L2':
@@ -141,7 +164,6 @@ class DA:
                     Y_old=self.Y
                     counter=counter+1
             
- 
             com=(np.count_nonzero(np.abs(P-1)<1e-5)/self.n)
             beta_list.append(Beta)
             y_list.append(self.Y)
@@ -149,46 +171,22 @@ class DA:
             #if (1-com)<self.BETA_TOL:
                 time=dt.default_timer()-start
                 print(f"Beta Max reached: {Beta} completeness:{com} time:{time}")
-                #break
-           
+                break
             Beta=Beta*self.GROWTH_RATE
             
             ###################################################
             cost=np.linalg.norm(self.X-(self.Y@P))/np.linalg.norm(self.X)
             cost_l.append(cost)
             if self.VERBOS:
-                print(f'Beta: {Beta} cost:{cost}')
-            if not end_break:
-                self.Y=a_split(self.Y)
-            if self.Y.shape[1]/2>=self.K and not end_break:
-                end_break=1
-                print(f"reached the specified number of clusters: {self.Y.shape[1]/2}")
-            if end_break:
-                if len(cost_l)>=patience:
-                    if max(cost_l[-patience:])-min(cost_l[-patience:]) <=1e-4:
-                        break
-                
-            #print(f'number of codevectors is {self.Y.shape[1]/2}',Beta)
-            """
-            if len(set(np.round((self.Y*self.Y).sum(axis=0),1)))>self.K:
-                print('setting the final stage')
-                #self.Y=self.Y[:,[i for i in range(self.Y.shape[1]) if i%2==0]]
-                self.Y=return_uniq(self.Y)
-                end=1
-                Beta=1e2
-             """ 
-   
-            ###################################################            
-
-            #___________________PURTURBATION__________________________
-
-            #PURTURB=self.PURTURB_RATIO*(np.random.rand(self.d,self.K)-0.5)*(np.max(self.X)-np.min(self.X))
-            sp=np.array_split(self.X, self.Y.shape[1],axis=1)
-            PURTURB=self.PURTURB_RATIO*np.vstack([np.mean(i,axis=1) for i in sp]).T
-            self.Y=self.Y+PURTURB
+                print(f'Beta: {Beta} com:{com}')
+            
+            if k_n<self.K:
+                self.Y,self.Py=bifurcate(self.X,self.Y,P,self.Px,self.Py,Beta,self.PURTURB_RATIO)
+                k_n=self.Y.shape[1]
+                #print(self.Y)
+            
             #_________________________________________________________
             
-        print(f'finished,{self.Y.shape[1]/2}')
         self.P=P
         return self.Y,self.P,beta_list,y_list
     def plot(self,size=(12,10),random_color=False):
