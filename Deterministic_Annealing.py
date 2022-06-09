@@ -1,7 +1,3 @@
-﻿#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
 # in coding we believe 
 # Salar Basiri
 import numpy as np
@@ -31,8 +27,10 @@ def bifurcate(x,y,p,px,py,beta,purturb):
     i=np.argmax(l)
     if l[i]<=0:
         return y,py,False
-    PURTURB=purturb*y[:,i]
-    y_h=np.insert(y,i,y[:,i]+PURTURB,axis=1)
+    direction=eigs[i][1]
+    PURTURB=purturb*direction
+    u=y[:,i][:,None]+PURTURB
+    y_h=np.insert(y,i,u[:,0],axis=1)
     py_d=py.copy()
     py_d[i]=py_d[i]/2
     py_h=np.insert(py_d,i,py_d[i])
@@ -96,7 +94,6 @@ class DA:
         Y_old=np.random.rand(self.d,k_n*2)*1e6
         P_old=np.random.rand(2,2)
         Beta=self.BETA_INIT
-        START_OK=0
         end=0
         cost_l=[]
         patience=5
@@ -116,7 +113,7 @@ class DA:
                 else:
                     raise Exception("Wrong Norm!")
                 D=np.sum(D,axis=0).T
-                
+                D=D-np.min(D,axis=0)
                 counter2=1
                 if self.CONSTRAINED:
                     print('not ok')
@@ -124,15 +121,6 @@ class DA:
                     
                     while True:
                         p=np.exp(-D*Beta)
-                        if not START_OK:
-                            print(f"beta init:{self.BETA_INIT} with com:{np.count_nonzero(np.abs(p-1)<1e-5)/(k_n*self.n)}")
-                            START_OK=1 
-                        #I=np.min(D[:,J],axis=0)
-                        #p[:,J]=np.logical_not(D[:,J]-matlib.repmat(I,D.shape[0],1)).astype(int)
-                        
-                        J=np.where(p.sum(axis=0)==0)[0]
-                        I=np.argmin(D[:,J],axis=0)
-                        p[I,J]=[1 for i in range(len(J))]
                         p=(p.T*self.Py).T
                         P=p/p.sum(axis=0)
                         self.Py=P@self.Px
@@ -160,7 +148,7 @@ class DA:
                     Y_old=self.Y
                     counter=counter+1
             
-            com=(np.count_nonzero(np.abs(P-1)<1e-5)/self.n)
+            com=(np.count_nonzero(np.abs(P-1)==0)/self.n)
             beta_list.append(Beta)
             y_list.append(self.Y)
             #if Beta>self.BETA_TOL:
@@ -189,9 +177,9 @@ class DA:
         self.beta_devide=beta_devide
         self.P=P
         return self.Y,self.P
-    def plot(self,size=(12,10),random_color=False):
+    def plot(self,size=(12,10)):
         plt.figure(figsize=size)
-        plt.scatter(self.X[0,:],self.X[1,:],marker='.');plt.grid()
+        plt.scatter(self.X[0,:],self.X[1,:],marker='.',color='black');plt.grid()
         plt.scatter(self.Y[0,:],self.Y[1,:],marker='*',c='red',linewidths=2)
     def return_cost(self):
         return np.linalg.norm(self.X-(self.Y@self.P),'fro')/np.linalg.norm(self.X,'fro')
@@ -216,6 +204,10 @@ class DA:
         fig=px.scatter(x=xx, y=yy,animation_frame=Betas,
                    log_x=False,range_x=[-5,5],range_y=[-5,5])
         fig.show()
+    def mesh_plot(self,size=(12,10)):
+      plt.figure(figsize=size)
+      for i in range(self.K):
+          J=np.where(1-self.P[i,:]<=1e-5)
+          plt.scatter(self.X[0,J],self.X[1,J],color=np.random.rand(3))
 
  
-    
