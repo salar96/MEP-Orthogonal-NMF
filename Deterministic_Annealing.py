@@ -2,7 +2,8 @@
 # coding: utf-8
 
 # In[ ]:
-
+# in coding we believe 
+# Salar Basiri
 import numpy as np
 from matplotlib import pyplot as plt
 import numpy.matlib as matlib
@@ -10,25 +11,14 @@ import warnings
 import timeit as dt
 import pandas as pd
 from sklearn.preprocessing import normalize
-from utils import divide
+
 from scipy.linalg import eigh
-def a_split(a):
-    
-    if a.shape[1]==2:
-        ss=[a]
-    else:
-        ss=np.hsplit(a, int(a.shape[1]/2))
-    
-    l=[np.linalg.norm(s[:,1]-s[:,0])/np.linalg.norm(s[:,0])<1e-1 for s in ss]
-    
-    for index , obj in enumerate(l):
-        if obj==False:
-            ss[index]=np.repeat(ss[index],2,axis=1); 
-            
-    out=np.concatenate(ss,axis=1)
-    return out
+import plotly.express as px
+def flatten(t):
+    return [item for sublist in t for item in sublist]
 
 def bifurcate(x,y,p,px,py,beta,purturb):
+    status=False
     xx=np.repeat(x[:,:,np.newaxis],y.shape[1],axis=2)
     yy=np.repeat(y[:,np.newaxis,:],x.shape[1],axis=1)
     pxy=p/np.repeat(py[:,np.newaxis],x.shape[1],axis=1)*np.repeat(px[np.newaxis,:],y.shape[1],axis=0)
@@ -36,19 +26,20 @@ def bifurcate(x,y,p,px,py,beta,purturb):
     z=xx-yy
     out=np.moveaxis(z.T,1,2)@(pp*z).T
     #l=[i for i in range(pxy.shape[0]) if beta>0.5/eigh(out[i,:,:],eigvals_only=True,subset_by_index=(x.shape[0]-1,x.shape[0]-1))[0]]
-    l=[beta-0.5/eigh(out[i,:,:],eigvals_only=True,subset_by_index=(x.shape[0]-1,x.shape[0]-1))[0] for i in range(out.shape[0])]
-    l=[i for i in l if i>0]
-    
-    if len(l)!=0:
-        l=np.argmax(l)
-    PURTURB=purturb*y[:,l]
-    y_h=np.insert(y,l,y[:,l]+PURTURB,axis=1)
+    eigs=[eigh(out[i,:,:],subset_by_index=(x.shape[0]-1,x.shape[0]-1)) for i in range(out.shape[0])]
+    l=[beta-0.5/eig[0] for eig in eigs]
+    i=np.argmax(l)
+    if l[i]<=0:
+        return y,py,False
+    PURTURB=purturb*y[:,i]
+    y_h=np.insert(y,i,y[:,i]+PURTURB,axis=1)
     py_d=py.copy()
-    py_d[l]=py_d[l]/2
-    py_h=np.insert(py_d,l,py_d[l])
+    py_d[i]=py_d[i]/2
+    py_h=np.insert(py_d,i,py_d[i])
     if y_h.shape!=y.shape:
-        print(f"\nDevision occured: from {y.shape[1]} to {y_h.shape[1]} at {beta}\n")  
-    return y_h,py_h
+        print(f"\nDevision occured: from {y.shape[1]} to {y_h.shape[1]} at {beta}\n")
+        status=True
+    return y_h,py_h,status
 
 
 class DA:
@@ -89,7 +80,7 @@ class DA:
             self.Lambdas=np.array([1 for i in range(self.K)])/self.K
         self.Ethas=self.Lambdas
         ################### dealing with beta_init here
-        #self.BETA_INIT=0.00000001/(2*np.max(np.abs(eigh(np.cov(X), eigvals_only=True))))
+        self.BETA_INIT=0.5/(2*np.max(np.abs(eigh(np.cov(X), eigvals_only=True))))
 
         print('Class DA fitted on DATA')
     
@@ -99,7 +90,7 @@ class DA:
         beta_list=[] # list of all betas
         y_list.append(self.Y);beta_list.append(0)
         start=dt.default_timer()
-        
+        beta_devide=[]
         k_n=1 # at first we just have one codevector
         self.Py=np.array([1]) #all the points belong to this cluster
         Y_old=np.random.rand(self.d,k_n*2)*1e6
@@ -142,7 +133,7 @@ class DA:
                         J=np.where(p.sum(axis=0)==0)[0]
                         I=np.argmin(D[:,J],axis=0)
                         p[I,J]=[1 for i in range(len(J))]
-                        #p=(p.T*self.Py).T
+                        p=(p.T*self.Py).T
                         P=p/p.sum(axis=0)
                         self.Py=P@self.Px
                         if P.shape==P_old.shape:
@@ -172,8 +163,8 @@ class DA:
             com=(np.count_nonzero(np.abs(P-1)<1e-5)/self.n)
             beta_list.append(Beta)
             y_list.append(self.Y)
-            if Beta>self.BETA_TOL:
-            #if (1-com)<self.BETA_TOL:
+            #if Beta>self.BETA_TOL:
+            if (1-com)<self.BETA_TOL and k_n==self.K:
                 time=dt.default_timer()-start
                 print(f"Beta Max reached: {Beta} completeness:{com} time:{time}")
                 break
@@ -186,36 +177,45 @@ class DA:
                 print(f'Beta: {Beta} com:{com}')
             
             if k_n<self.K:
-                self.Y,self.Py=bifurcate(self.X,self.Y,P,self.Px,self.Py,Beta,self.PURTURB_RATIO)
+                self.Y,self.Py,status=bifurcate(self.X,self.Y,P,self.Px,self.Py,Beta,self.PURTURB_RATIO)
                 k_n=self.Y.shape[1]
-                #print(self.Y)
+                if status:
+                  beta_devide.append(Beta)
+                #print(self.Py)
             
             #_________________________________________________________
-            
+        self.y_list=y_list
+        self.beta_list=beta_list
+        self.beta_devide=beta_devide
         self.P=P
-        return self.Y,self.P,beta_list,y_list
+        return self.Y,self.P
     def plot(self,size=(12,10),random_color=False):
         plt.figure(figsize=size)
         plt.scatter(self.X[0,:],self.X[1,:],marker='.');plt.grid()
         plt.scatter(self.Y[0,:],self.Y[1,:],marker='*',c='red',linewidths=2)
     def return_cost(self):
         return np.linalg.norm(self.X-(self.Y@self.P),'fro')/np.linalg.norm(self.X,'fro')
+    def pie_chart(self):
+        labels=['Y_'+str(i) for i in range(self.Py.shape[0])]
+        explode=np.zeros_like(self.Py)
+        explode[np.argmin(self.Py)]=0.5
+        fig1, ax1 = plt.subplots()
+        ax1.pie(self.Py, explode=explode,labels=labels,autopct='%1.1f%%',
+                shadow=True, startangle=90)
+        ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+        ax1.set_title("Cluster Masses %")
+        plt.show()
+    def animation(self):
+        xx=np.array(flatten([list(i[0,:]) for i in self.y_list]))
+        yy=np.array(flatten([list(i[1,:]) for i in self.y_list]))
+        Betas=[]
+        for i , y in enumerate(self.y_list):
+            for j in range(y.shape[1]):
+                Betas.append(self.beta_list[i])
+        df = px.data.gapminder()
+        fig=px.scatter(x=xx, y=yy,animation_frame=Betas,
+                   log_x=False,range_x=[-5,5],range_y=[-5,5])
+        fig.show()
+
+ 
     
-    
-if __name__=='__main__':
-    X=[]
-    for i in range(100):
-        X.append([0+(-1)**(int(np.random.rand()))*np.random.rand(),4+(-1)**(int(np.random.rand()))*np.random.rand()])
-        X.append([1.5+(-1)**(int(np.random.rand()))*np.random.rand(),2+(-1)**(int(np.random.rand()))*np.random.rand()])
-        X.append([-1.5+(-1)**(int(np.random.rand()))*np.random.rand(),2+(-1)**(int(np.random.rand()))*np.random.rand()])
-        X.append([-3+(-1)**(int(np.random.rand()))*np.random.rand(),-3+(-1)**(int(np.random.rand()))*np.random.rand()])
-        X.append([-4.5+(-1)**(int(np.random.rand()))*np.random.rand(),-5+(-1)**(int(np.random.rand()))*np.random.rand()])
-        X.append([-1.5+(-1)**(int(np.random.rand()))*np.random.rand(),-5+(-1)**(int(np.random.rand()))*np.random.rand()])
-        X.append([3+(-1)**(int(np.random.rand()))*np.random.rand(),-3+(-1)**(int(np.random.rand()))*np.random.rand()])
-        X.append([4.5+(-1)**(int(np.random.rand()))*np.random.rand(),-5+(-1)**(int(np.random.rand()))*np.random.rand()])
-        X.append([1.5+(-1)**(int(np.random.rand()))*np.random.rand(),-5+(-1)**(int(np.random.rand()))*np.random.rand()])
-    X=(np.vstack(X).T+10)/10
-    clus_num=9
-    model=DA(clus_num,NORM='KL',GROWTH_RATE=1.5,BETA_INIT=1e-1,BETA_TOL=1e-16,PURTURB_RATIO=0.2,verbos=0)
-    model.fit(X);Y,P=model.classify();model.plot()
-    print(model.return_cost())
