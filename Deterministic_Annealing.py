@@ -1,5 +1,8 @@
-# in coding we believe 
-# Salar Basiri
+#___________________In Coding We Believe___________________
+#___________________Salar Basiri___________________________
+#___________________Deterministic Annealing________________
+
+#___________________Importing Libraries___________________________
 import numpy as np
 from matplotlib import pyplot as plt
 import numpy.matlib as matlib
@@ -7,21 +10,33 @@ import warnings
 import timeit as dt
 import pandas as pd
 from sklearn.preprocessing import normalize
-
 from scipy.linalg import eigh
 import plotly.express as px
+
+
 def flatten(t):
+    '''
+    this finction is used for the purpose of flattening the Betas
+    and data points to be ploted in the animation
+
+    '''
     return [item for sublist in t for item in sublist]
 
 def bifurcate(x,y,p,px,py,beta,purturb):
-    status=False
+    '''
+    this finction decides whether any codevectore needs to split.
+    it chooses the codevectore with biggest covarience eigenvalue,
+    and if beta>1/(2*lambda_max) it splits the codevector in the 
+    direction of the corrosponding eigenvector.
+
+    '''
+    status=False #whether any codevetor needs to split or not
     xx=np.repeat(x[:,:,np.newaxis],y.shape[1],axis=2)
     yy=np.repeat(y[:,np.newaxis,:],x.shape[1],axis=1)
     pxy=p/np.repeat(py[:,np.newaxis],x.shape[1],axis=1)*np.repeat(px[np.newaxis,:],y.shape[1],axis=0)
     pp=np.repeat(pxy.T[np.newaxis,:,:],x.shape[0],axis=0)
     z=xx-yy
     out=np.moveaxis(z.T,1,2)@(pp*z).T
-    #l=[i for i in range(pxy.shape[0]) if beta>0.5/eigh(out[i,:,:],eigvals_only=True,subset_by_index=(x.shape[0]-1,x.shape[0]-1))[0]]
     eigs=[eigh(out[i,:,:],subset_by_index=(x.shape[0]-1,x.shape[0]-1)) for i in range(out.shape[0])]
     l=[beta-0.5/eig[0] for eig in eigs]
     i=np.argmax(l)
@@ -35,40 +50,42 @@ def bifurcate(x,y,p,px,py,beta,purturb):
     py_d[i]=py_d[i]/2
     py_h=np.insert(py_d,i,py_d[i])
     if y_h.shape!=y.shape:
-        print(f"\nDevision occured: from {y.shape[1]} to {y_h.shape[1]} at {beta}\n")
+        #print(f"\nDevision occured: from {y.shape[1]} to {y_h.shape[1]} at {beta}\n")
         status=True
     return y_h,py_h,status
 
 
 class DA:
     def __init__(self,K,NORM='L2',TOL=1e-4,MAX_ITER=1000,GROWTH_RATE=1.05,
-               PURTURB_RATIO=0.01,BETA_INIT=1e-6,BETA_TOL=1e-6,verbos=0,NORMALIZE=False):
-        # K: number of clusters Norm: the type of norm applied as the distance measure
-        # TOL: The relative tolerence applied as the stopping criteria
-        # Max_ITER: maximum number of iterations applied as the stopping criteria
-        self.K=K;self.TOL=TOL;self.MAX_ITER=MAX_ITER;self.BETA_INIT=BETA_INIT
-        self.GROWTH_RATE=GROWTH_RATE;self.PURTURB_RATIO=PURTURB_RATIO;self.BETA_TOL=BETA_TOL
+              PURTURB_RATIO=0.01,BETA_FINAL=None,verbos=0,NORMALIZE=False):
+        '''
+         K: number of clusters Norm: the type of norm applied as the distance measure
+         TOL: The relative tolerence applied as the stopping criteria
+         Max_ITER: maximum number of iterations applied as the stopping criteria
+         PURTURB_RATIO: the magnitude of purturbation after each split
+        '''
+        self.K=K;self.TOL=TOL;self.MAX_ITER=MAX_ITER;
+        self.GROWTH_RATE=GROWTH_RATE;self.PURTURB_RATIO=PURTURB_RATIO;self.BETA_FINAL=BETA_FINAL
         self.CONSTRAINED=False;self.VERBOS=verbos;self.NORM=NORM;self.NORMALIZE=NORMALIZE
-        print('DA model was created successfully')
+        print('___________DA Model Was Created Successfully___________')
 
     #___________________Fitting the model on data___________________
 
     def fit(self,X,**kwargs):
-        # **kwargs:
-        # px: data points probability array
-        # lambdas: for the constrained codevectors probability array
+        '''
+         **kwargs:
+         px: data points probability array
+         lambdas: for the constrained codevectors probability array
+        '''  
         m, self.n = np.shape(X)
-        self.X=X
-        self.d=m
-        if (self.X<0).any() and self.NORM=='KL':
-            raise Exception('Your input matrix contains negative values. Try using another norm')
-        
+        self.X=X;self.d=m
+               
         if 'Px' in kwargs:
             self.Px=kwargs['Px']
         else:
             self.Px=np.array([1 for i in range(self.n)])/self.n
         self.Y=np.repeat((self.X@self.Px).reshape(m,1),1,axis=1)
-        
+        self.Py=np.array([1]) #all the points belong to this cluster
         if 'Lambdas' in kwargs:
             self.CONSTRAINED=True
             self.Lambdas=kwargs['Lambdas']
@@ -77,36 +94,31 @@ class DA:
         else:
             self.Lambdas=np.array([1 for i in range(self.K)])/self.K
         self.Ethas=self.Lambdas
-        ################### dealing with beta_init here
-        self.BETA_INIT=0.5/(2*np.max(np.abs(eigh(np.cov(X), eigvals_only=True))))
-
-        print('Class DA fitted on DATA')
+        #self.BETA_INIT=0.5/(2*np.max(np.abs(eigh((X*self.Px)@X.T, eigvals_only=True))))
+        self.BETA_INIT=0.49/eigh((self.X*self.Px)@self.X.T,eigvals_only=True,subset_by_index=(m-1,m-1))[0]
+        
+        print('___________Model Fitted on Data___________')
     
+
     def classify(self):
-        end_break=0
+  
         y_list=[] # a list to save codevectors over betas
         beta_list=[] # list of all betas
         y_list.append(self.Y);beta_list.append(0)
         start=dt.default_timer()
-        beta_devide=[]
         k_n=1 # at first we just have one codevector
-        self.Py=np.array([1]) #all the points belong to this cluster
-        Y_old=np.random.rand(self.d,k_n*2)*1e6
-        P_old=np.random.rand(2,2)
+        Y_old=np.random.rand(self.d,k_n*2)*1e6;P_old=np.random.rand(2,2);
+        beta_devide=[] #list to store critical betas
+        cost_l=[] #list to store all costs
         Beta=self.BETA_INIT
-        end=0
-        cost_l=[]
-        patience=5
+        print(f'Classification started at Beta:{Beta}')
         while True: #beta loop
-            
             counter=1
             while True: #y p etha loop
-                
                 self.Data_points=np.repeat(self.X[:,:,np.newaxis],self.Y.shape[1],axis=2)
                 Cluster_points=np.repeat(self.Y[:,np.newaxis,:],self.n,axis=1)
                 if self.NORM=='KL':
                     d=np.log(Cluster_points/(self.Data_points+1e-6))
-                    #d[np.where(d==-np.inf)]=0
                     D=d*Cluster_points-Cluster_points+self.Data_points
                 elif self.NORM=='L2':
                     D=(self.Data_points-Cluster_points)**2
@@ -116,9 +128,8 @@ class DA:
                 D=D-np.min(D,axis=0)
                 counter2=1
                 if self.CONSTRAINED:
-                    print('not ok')
-                else:
-                    
+                    print('under construction!')
+                else:  
                     while True:
                         p=np.exp(-D*Beta)
                         p=(p.T*self.Py).T
@@ -133,7 +144,7 @@ class DA:
                         P_old=P
                         counter2=counter2+1
                     if self.NORM=='KL':
-                        self.Y=np.exp(((np.log(self.X+1e-6)*self.Px)@P.T)/(Py+1e-6))
+                        self.Y=np.exp(((np.log(self.X+1e-6)*self.Px)@P.T)/(self.Py+1e-6))
                     elif self.NORM=='L2':
                         self.Y=((self.X*self.Px)@P.T)/(self.Py)
                     else:
@@ -151,28 +162,33 @@ class DA:
             com=(np.count_nonzero(np.abs(P-1)==0)/self.n)
             beta_list.append(Beta)
             y_list.append(self.Y)
-            #if Beta>self.BETA_TOL:
-            if (1-com)<self.BETA_TOL and k_n==self.K:
+            cost=np.linalg.norm(self.X-(self.Y@P))/np.linalg.norm(self.X)
+            cost_l.append(cost)
+            if not (self.BETA_FINAL is None):
+              if Beta>self.BETA_FINAL:
                 time=dt.default_timer()-start
                 print(f"Beta Max reached: {Beta} completeness:{com} time:{time}")
                 break
-            Beta=Beta*self.GROWTH_RATE
+            else:
+              if (1-com)<1e-18 and k_n==self.K:
+              #if not np.count_nonzero([list(i).count(1.0)-1.0 for i in np.split(P,P.shape[1],axis=1)]) and k_n==self.K:
+                time=dt.default_timer()-start
+                print(f"stopping criteria met at Beta: {Beta} cost:{cost} time:{time}")
+                break
             
-            ###################################################
-            cost=np.linalg.norm(self.X-(self.Y@P))/np.linalg.norm(self.X)
-            cost_l.append(cost)
             if self.VERBOS:
-                print(f'Beta: {Beta} com:{com}')
+                print(f'Beta: {Beta} cost:{cost}')
             
+            Beta=Beta*self.GROWTH_RATE
+      
             if k_n<self.K:
                 self.Y,self.Py,status=bifurcate(self.X,self.Y,P,self.Px,self.Py,Beta,self.PURTURB_RATIO)
                 k_n=self.Y.shape[1]
                 if status:
                   beta_devide.append(Beta)
-                #print(self.Py)
+                
             
-            #_________________________________________________________
-        self.y_list=y_list
+        self.y_list=y_list;self.cost_list=cost_l
         self.beta_list=beta_list
         self.beta_devide=beta_devide
         self.P=P
@@ -209,5 +225,9 @@ class DA:
       for i in range(self.K):
           J=np.where(1-self.P[i,:]<=1e-5)
           plt.scatter(self.X[0,J],self.X[1,J],color=np.random.rand(3))
+    def return_true_number(self):
+      return np.argmax([np.log(self.beta_devide[i+1]/self.beta_devide[i]) for i in range(len(self.beta_devide)-1)])+2
+
+ 
 
  
