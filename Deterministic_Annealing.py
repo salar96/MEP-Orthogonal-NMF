@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 #___________________In Coding We Believe___________________
 #___________________Salar Basiri___________________________
 #___________________Deterministic Annealing________________
@@ -18,7 +21,6 @@ def flatten(t):
     '''
     this finction is used for the purpose of flattening the Betas
     and data points to be ploted in the animation
-
     '''
     return [item for sublist in t for item in sublist]
 
@@ -28,7 +30,6 @@ def bifurcate(x,y,p,px,py,beta,purturb):
     it chooses the codevectore with biggest covarience eigenvalue,
     and if beta>1/(2*lambda_max) it splits the codevector in the 
     direction of the corrosponding eigenvector.
-
     '''
     status=False #whether any codevetor needs to split or not
     xx=np.repeat(x[:,:,np.newaxis],y.shape[1],axis=2)
@@ -111,7 +112,8 @@ class DA:
         beta_devide=[] #list to store critical betas
         cost_l=[] #list to store all costs
         Beta=self.BETA_INIT
-        print(f'Classification started at Beta:{Beta}')
+        if self.VERBOS:
+            print(f'Classification started at Beta:{Beta}')
         while True: #beta loop
             counter=1
             while True: #y p etha loop
@@ -126,13 +128,13 @@ class DA:
                     raise Exception("Wrong Norm!")
                 D=np.sum(D,axis=0).T
                 D=D-np.min(D,axis=0)
+                delta=np.exp(-D*Beta)
                 counter2=1
                 if self.CONSTRAINED:
                     print('under construction!')
                 else:  
-                    while True:
-                        p=np.exp(-D*Beta)
-                        p=(p.T*self.Py).T
+                    while True:  
+                        p=(delta.T*self.Py).T
                         P=p/p.sum(axis=0)
                         self.Py=P@self.Px
                         if P.shape==P_old.shape:
@@ -164,11 +166,11 @@ class DA:
             y_list.append(self.Y)
             cost=np.linalg.norm(self.X-(self.Y@P))/np.linalg.norm(self.X)
             cost_l.append(cost)
-            if not (self.BETA_FINAL is None):
-              if Beta>self.BETA_FINAL:
+            if (not (self.BETA_FINAL is None)) and Beta<1e100:
+              if Beta>self.BETA_FINAL and k_n==self.K:
                 time=dt.default_timer()-start
                 print(f"Beta Max reached: {Beta} completeness:{com} time:{time}")
-                break
+                Beta=1e100
             else:
               if (1-com)<1e-18 and k_n==self.K:
               #if not np.count_nonzero([list(i).count(1.0)-1.0 for i in np.split(P,P.shape[1],axis=1)]) and k_n==self.K:
@@ -183,6 +185,8 @@ class DA:
       
             if k_n<self.K:
                 self.Y,self.Py,status=bifurcate(self.X,self.Y,P,self.Px,self.Py,Beta,self.PURTURB_RATIO)
+                if self.VERBOS:
+                    print(f"\nDevision occured: to {self.Y.shape[1]} at {Beta}\n")
                 k_n=self.Y.shape[1]
                 if status:
                   beta_devide.append(Beta)
@@ -191,7 +195,7 @@ class DA:
         self.y_list=y_list;self.cost_list=cost_l
         self.beta_list=beta_list
         self.beta_devide=beta_devide
-        self.P=P
+        self.P=np.round(P)
         return self.Y,self.P
     def plot(self,size=(12,10)):
         plt.figure(figsize=size)
@@ -227,7 +231,3 @@ class DA:
           plt.scatter(self.X[0,J],self.X[1,J],color=np.random.rand(3))
     def return_true_number(self):
       return np.argmax([np.log(self.beta_devide[i+1]/self.beta_devide[i]) for i in range(len(self.beta_devide)-1)])+2
-
- 
-
- 
