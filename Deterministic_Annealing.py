@@ -6,6 +6,14 @@
 #___________________Deterministic Annealing________________
 
 #___________________Importing Libraries___________________________
+#!/usr/bin/env python
+# coding: utf-8
+
+#___________________In Coding We Believe___________________
+#___________________Salar Basiri___________________________
+#___________________Deterministic Annealing________________
+
+#___________________Importing Libraries___________________________
 import numpy as np
 from matplotlib import pyplot as plt
 import numpy.matlib as matlib
@@ -34,7 +42,8 @@ def bifurcate(x,y,p,px,py,beta,purturb):
     status=False #whether any codevetor needs to split or not
     xx=np.repeat(x[:,:,np.newaxis],y.shape[1],axis=2)
     yy=np.repeat(y[:,np.newaxis,:],x.shape[1],axis=1)
-    pxy=p/np.repeat(py[:,np.newaxis],x.shape[1],axis=1)*np.repeat(px[np.newaxis,:],y.shape[1],axis=0)
+    #pxy=p/np.repeat(py[:,np.newaxis],x.shape[1],axis=1)*np.repeat(px[np.newaxis,:],y.shape[1],axis=0)
+    pxy=p*np.repeat(px[np.newaxis,:],y.shape[1],axis=0)
     pp=np.repeat(pxy.T[np.newaxis,:,:],x.shape[0],axis=0)
     z=xx-yy
     out=np.moveaxis(z.T,1,2)@(pp*z).T
@@ -46,6 +55,7 @@ def bifurcate(x,y,p,px,py,beta,purturb):
     direction=eigs[i][1]
     PURTURB=purturb*direction
     u=y[:,i][:,None]+PURTURB
+    #y[:,i]=y[:,i]-PURTURB[:,0]
     y_h=np.insert(y,i,u[:,0],axis=1)
     py_d=py.copy()
     py_d[i]=py_d[i]/2
@@ -181,8 +191,8 @@ class DA:
             if self.VERBOS:
                 print(f'Beta: {Beta} cost:{cost}')
             
+            
             Beta=Beta*self.GROWTH_RATE
-      
             if k_n<self.K:
                 self.Y,self.Py,status=bifurcate(self.X,self.Y,P,self.Px,self.Py,Beta,self.PURTURB_RATIO)
                 if self.VERBOS:
