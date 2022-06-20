@@ -4,9 +4,9 @@ from Deterministic_Annealing import DA
 
 class ONMF_DA:
     name = "ONMF-DA"
-    def func (X, k,GROWTH_RATE=2,PURTURB_RATIO=0.0001,patience=0.5,verbos=0,Normalize=True,auto_weighting=True):
+    def func (X, k,alpha=2,purturb=0.0001,verbos=0,normalize=True,auto_weighting=True,tol=1e-3):
         m, n = np.shape(X)
-        model=DA(k,GROWTH_RATE=GROWTH_RATE,PURTURB_RATIO=PURTURB_RATIO,verbos=verbos,NORMALIZE=Normalize,PATIENCE=patience)
+        model=DA(k,alpha=alpha,purturb=purturb,verbos=verbos,normalize=normalize,tol=tol)
         if auto_weighting:
             model.fit(X,Px='auto');
         else:
@@ -19,4 +19,3 @@ class ONMF_DA:
             w[id,i]=(X[:,i].T @ Y[:,id])/norm1/norm1
 
         return Y, w,model
-
