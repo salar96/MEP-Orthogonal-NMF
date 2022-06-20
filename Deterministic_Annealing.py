@@ -10,7 +10,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 import numpy.matlib as matlib
 import warnings
-import timeit as dt
 import pandas as pd
 from sklearn.preprocessing import normalize
 from scipy.linalg import eigh
@@ -32,7 +31,7 @@ def flatten(t):
     '''
     return [item for sublist in t for item in sublist]
 
-def bifurcate(x,y,p,px,py,beta,purturb,patience=0.5):
+def bifurcate(x,y,p,px,py,beta,purturb):
     '''
     this finction decides whether any codevectore needs to split.
     it chooses the codevectore with biggest covarience eigenvalue,
@@ -52,9 +51,10 @@ def bifurcate(x,y,p,px,py,beta,purturb,patience=0.5):
 ##############
     I=np.argsort(p[i,:])[int(p.shape[1]/2):p.shape[1]]
     direction=(x[:,I]*px[I])@p[i,I].T
+    direction=direction/(np.sum(direction*direction,axis=0)**0.5)
 #######
     #direction=np.random.rand(y.shape[0],1)
-    PURTURB=purturb*eigs[i][0]*direction
+    PURTURB=purturb*np.sqrt(eigs[i][0])*direction
     u=y[:,i][:,None]+PURTURB
     y_h=np.insert(y,i,u[:,0],axis=1)
     py_d=py.copy()
@@ -67,18 +67,18 @@ def bifurcate(x,y,p,px,py,beta,purturb,patience=0.5):
 
 
 class DA:
-    def __init__(self,K,NORM='L2',TOL=1e-4,MAX_ITER=1000,alpha=1.05,
-              purturb=0.01,PATIENCE=0.5,BETA_FINAL=None,verbos=0,normalize=False):
+    def __init__(self,K,norm='L2',tol=1e-4,max_iter=1000,alpha=1.05,
+              purturb=0.01,beta_final=None,verbos=0,normalize=False):
         '''
-         K: number of clusters Norm: the type of norm applied as the distance measure
-         TOL: The relative tolerence applied as the stopping criteria
-         Max_ITER: maximum number of iterations applied as the stopping criteria
+         K: number of clusters norm: the type of norm applied as the distance measure
+         tol: The relative tolerence applied as the stopping criteria
+         max_iter: maximum number of iterations applied as the stopping criteria
          purturb: the magnitude of purturbation after each split
         '''
-        self.K=K;self.TOL=TOL;self.MAX_ITER=MAX_ITER;
-        self.alpha=alpha;self.purturb=purturb;self.BETA_FINAL=BETA_FINAL
-        self.CONSTRAINED=False;self.VERBOS=verbos;self.NORM=NORM;self.normalize=normalize
-        self.PATIENCE=PATIENCE
+        self.K=K;self.tol=tol;self.max_iter=max_iter;
+        self.alpha=alpha;self.purturb=purturb;self.beta_final=beta_final
+        self.CONSTRAINED=False;self.VERBOS=verbos;self.norm=norm;self.normalize=normalize
+        
 
     #___________________Fitting the model on data___________________
 
@@ -108,7 +108,7 @@ class DA:
         else:
             self.Px=np.array([1 for i in range(self.n)])/self.n
         if not (flag == self.normalize):
-            print('!!--Normalization without auto weighting on Px--!!')
+            print('!!--normalization without auto weighting on Px--!!')
         self.Y=np.repeat((self.X@self.Px).reshape(m,1),1,axis=1)
         self.Py=np.array([1]) #all the points belong to this cluster
         if 'Lambdas' in kwargs:
@@ -129,11 +129,11 @@ class DA:
         y_list=[] # a list to save codevectors over betas
         beta_list=[] # list of all betas
         y_list.append(self.Y);beta_list.append(0)
-        start=dt.default_timer()
+        
         k_n=1 # at first we just have one codevector
         Y_old=np.random.rand(self.d,k_n*2)*1e6;P_old=np.random.rand(2,2);y_old=Y_old
         beta_devide=[] #list to store critical betas
-        cost_l=[] #list to store all costs
+        #cost_l=[] #list to store all costs
         Beta=self.BETA_INIT
         changed=True;check_change=False
         if self.VERBOS:
@@ -143,13 +143,13 @@ class DA:
             while True: #y p etha loop
                 self.Data_points=np.repeat(self.X[:,:,np.newaxis],self.Y.shape[1],axis=2)
                 Cluster_points=np.repeat(self.Y[:,np.newaxis,:],self.n,axis=1)
-                if self.NORM=='KL':
+                if self.norm=='KL':
                     d=np.log(Cluster_points/(self.Data_points+1e-6))
                     D=d*Cluster_points-Cluster_points+self.Data_points
-                elif self.NORM=='L2':
+                elif self.norm=='L2':
                     D=(self.Data_points-Cluster_points)**2
                 else:
-                    raise Exception("Wrong Norm!")
+                    raise Exception("Wrong norm!")
                 D=np.sum(D,axis=0).T
                 D=D-np.min(D,axis=0)
                 delta=np.exp(-D*Beta)
@@ -161,26 +161,24 @@ class DA:
                         p=(delta.T*self.Py).T
                         P=p/p.sum(axis=0)
                         self.Py=P@self.Px
-                        
                         if P.shape==P_old.shape:
-                            if np.linalg.norm(P-P_old)/np.linalg.norm(P_old)<self.TOL:
+                            if np.linalg.norm(P-P_old)/np.linalg.norm(P_old)<1e-4:
                                 break
-                        if counter>self.MAX_ITER:
+                        if counter>self.max_iter:
                             warnings.warn("MAX ITER REACHED: py LOOP")
                             break
                         P_old=P
                         counter2=counter2+1
-                    if self.NORM=='KL':
+                    if self.norm=='KL':
                         self.Y=np.exp(((np.log(self.X+1e-6)*self.Px)@P.T)/(self.Py+1e-6))
-                    elif self.NORM=='L2':
+                    elif self.norm=='L2':
                         self.Y=((self.X*self.Px)@P.T)/(self.Py)
                     else:
-                        raise Exception("Wrong Norm!")
-                    
+                        raise Exception("Wrong norm!")
                     if self.Y.shape==Y_old.shape:
-                        if np.linalg.norm(self.Y-Y_old)/np.linalg.norm(Y_old)<self.TOL:
+                        if np.linalg.norm(self.Y-Y_old)/np.linalg.norm(Y_old)<self.tol:
                             break
-                    if counter>self.MAX_ITER:
+                    if counter>self.max_iter:
                         warnings.warn("MAX ITER REACHED: Y LOOP")
                         break
                     Y_old=self.Y
@@ -189,38 +187,33 @@ class DA:
             com=(np.count_nonzero(np.abs(P-1)==0)/self.n)
             beta_list.append(Beta)
             y_list.append(self.Y)
-            cost=np.linalg.norm(self.X-(self.Y@P))/np.linalg.norm(self.X)
-            cost_l.append(cost)
-            if (not (self.BETA_FINAL is None)) and Beta<1e100:
-              if Beta>self.BETA_FINAL and k_n==self.K:
-                time=dt.default_timer()-start
-                print(f"Beta Max reached: {Beta} completeness:{com} time:{time}")
+            #cost=np.linalg.norm(self.X-(self.Y@P))/np.linalg.norm(self.X)
+            #cost_l.append(cost)
+            if (not (self.beta_final is None)) and Beta<1e100:
+              if Beta>self.beta_final and k_n==self.K:
+                print(f"Beta Max reached: {Beta} completeness:{com}")
                 Beta=1e100
             else:
-              if (1-com)<1e-18 and k_n==self.K:
-              #if not np.count_nonzero([list(i).count(1.0)-1.0 for i in np.split(P,P.shape[1],axis=1)]) and k_n==self.K:
-                time=dt.default_timer()-start
-                print(f"stopping criteria met at Beta: {Beta} cost:{cost} time:{time}")
+              if (1-com)<1e-18 and k_n==self.K: 
+                print(f"stopping criteria met at Beta: {Beta}")
                 break
             
             if self.VERBOS:
                 print(f'Beta: {Beta} cost:{cost}')
             if check_change:
-                changed=has_changed(y_old,self.Y,self.TOL)
+                changed=has_changed(y_old,self.Y,self.tol)
                 if changed:
-                    print(f'a change happened in {self.Y.shape[1]} clusters')
+                    #print(f'a change happened in {self.Y.shape[1]} clusters')
                     check_change=False
-            stabled=has_stabled(y_old,self.Y,self.TOL)
-            if changed and stabled:
-                print(f'y is stabled in {self.Y.shape[1]} clusters')
+            stabled=has_stabled(y_old,self.Y,self.tol)
+            
             Beta=Beta*self.alpha
             if k_n<self.K:
                 if changed:
                     if stabled:
-                        self.Y,self.Py,status=bifurcate(self.X,self.Y,P,self.Px,self.Py,Beta,self.purturb,self.PATIENCE)
+                        self.Y,self.Py,status=bifurcate(self.X,self.Y,P,self.Px,self.Py,Beta,self.purturb)
                         if self.VERBOS:
                             print(f"\nDevision occured: to {self.Y.shape[1]} at {Beta}\n")
-                        print(self.Py)
                         k_n=self.Y.shape[1]
                         check_change=True
                         if status:
