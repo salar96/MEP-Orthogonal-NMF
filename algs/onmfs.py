@@ -9,16 +9,16 @@ class ONMFS:
     def func (M, k):
         M = M.T
         m, n = np.shape(M)
-        print(m, n)
+        
         r = k
         u, s, vh = np.linalg.svd(M, full_matrices=False, compute_uv=True)
-        print(u,s)
+        
         s = np.diag(s)[:, :r]
         best_W = np.zeros((m, k))
         best_H = np.zeros((n, k))
         best_Fro = 0
         for _ in range(2000):
-            print(_)
+            #print(_)
             C = np.random.normal(loc=0.0, scale=1.0, size=(r,k))
             for i in range(k):
                 C = normalize(C, 0)
@@ -31,8 +31,7 @@ class ONMFS:
                     bestFro = temp_Fro
                     best_W = W
                     best_H = H
-        print("best_W")
-        print(best_W)
+        
         return best_H, best_W
     def LocalOptW (A):
         m, k = np.shape(A)
