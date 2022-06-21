@@ -41,8 +41,7 @@ class ONMF_Ding:
                 P = divide (P, temp)
                 S *= np.sqrt(P)
 
-                if count == 0:
-                    print("ONMF_Ding", F_diff, G_diff)
+                
                 count += 1
                 if count >= period:
                     count = 0
@@ -70,8 +69,7 @@ class ONMF_Ding:
                 if count == 0:
                     G_diff = np.linalg.norm(G - G_next, ord = "fro") /np.linalg.norm(G, ord="fro")
                 G = G_next
-                if count == 0:
-                    print("ONMF_Ding", G_diff, F_diff)
+                
                 count += 1
                 if count >= period:
                     count = 0
