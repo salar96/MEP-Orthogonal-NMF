@@ -23,8 +23,7 @@ class PNMF:
             if count == 0:
                 F_diff = np.linalg.norm(F - F_next, ord = "fro")/np.linalg.norm(F, ord = "fro")
             F = F_next
-            if count == 0:
-                print("PNMF", F_diff)
+            
             count += 1
             if count >= period:
                 count = 0
