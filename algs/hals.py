@@ -15,6 +15,7 @@ class HALS:
         A_diff, B_diff = 1, 1
         period = 5
         count = 0
+        iter=0
         while A_diff >= 1e-4 or B_diff >= 1e-4:
             if count == 0:
                 B_prev = np.copy(B)
@@ -39,4 +40,7 @@ class HALS:
             count += 1
             if count >= period:
                 count = 0
+            if iter>1000:
+                break
+            iter=iter+1
         return A, B
