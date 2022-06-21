@@ -14,7 +14,8 @@ class ONMF_A:
         F_diff, G_diff = 1, 1
         count = 0
         period = 5
-
+        max_iter=1000
+        i=0
         # while F_diff >= 1e-1 and G_diff >= 1e-1:
         while F_diff >= 1.5e-3 or G_diff >= 1.5e-3:
             denominator = F @ G.T @ X.T @ F
@@ -38,4 +39,7 @@ class ONMF_A:
             count += 1
             if count >= period:
                 count = 0
+            if i>max_iter:
+                break
+            i=i+1
         return G, F
