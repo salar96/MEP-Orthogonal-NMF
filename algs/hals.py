@@ -35,7 +35,7 @@ class HALS:
             if count == 0:
                 A_diff = np.linalg.norm(A - A_prev, ord = "fro") /np.linalg.norm(A_prev, ord="fro")
                 B_diff = np.linalg.norm(B - B_prev, ord = "fro") /np.linalg.norm(B_prev, ord="fro")
-                print("HALS", A_diff, B_diff)
+                
             count += 1
             if count >= period:
                 count = 0
