@@ -26,8 +26,7 @@ class NMF:
             if count == 0:
                 G_diff = np.linalg.norm(G - G_next, ord = "fro")/np.linalg.norm(G, ord = "fro")
             G = G_next
-            if count == 0:
-                print ("NMF", F_diff, G_diff)
+            
             count += 1
             if count >= period:
                 count = 0
