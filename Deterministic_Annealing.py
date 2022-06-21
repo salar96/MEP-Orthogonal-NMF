@@ -220,7 +220,7 @@ class DA:
                             beta_devide.append(Beta)
             y_old=self.Y           
             
-        self.y_list=y_list;self.cost_list=cost_l
+        self.y_list=y_list
         self.beta_list=beta_list
         self.beta_devide=beta_devide
         self.P=np.round(P)
