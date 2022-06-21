@@ -18,4 +18,4 @@ class ONMF_DA:
             norm1 = np.linalg.norm(Y[:,id])
             w[id,i]=(X[:,i].T @ Y[:,id])/norm1/norm1
 
-        return Y, w,model
+        return Y, w.T,model
