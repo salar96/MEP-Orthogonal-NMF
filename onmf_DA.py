@@ -11,7 +11,7 @@ class ONMF_DA:
             model.fit(X,Px='auto');
         else:
             model.fit(X);
-        Y,P=model.classify()
+        Y,P=model.cluster()
         w=np.round(P.copy())
         for i in range(n):
             id=np.where(w[:,i]==1)[0]
