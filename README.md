@@ -37,6 +37,7 @@ Deterministic Annealing (DA) is a clustering, or in a more accurate definition, 
               purturb=0.01,beta_final=None,verbos=0,normalize=False)
   model.fit(X,Px='auto')
   Y,P=model.cluster()
+  print(model.return_cost())
 }
 ```
 For example, for a dataset that consists of 16 psudu-symmetric clusters as illustrated if Fig 1, the DA finds the cluster centers:
