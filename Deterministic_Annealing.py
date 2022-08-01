@@ -269,5 +269,5 @@ class DA:
         plt.xlabel('Cluster Number')
 
     def return_true_number(self):
-      return np.argmax([(self.beta_devide[i+1]/self.beta_devide[i]) for i in range(len(self.beta_devide)-1)])+2
+      return np.argmax([(self.beta_devide[i+1]/self.beta_devide[i]) for i in range(len(self.beta_devide)-1)])+1
 
