@@ -65,6 +65,12 @@ These critical $\beta$ values provide useful information about our dataset. By p
 ![index](https://user-images.githubusercontent.com/50495107/182256886-e245ce07-2e2e-4fa5-9515-38abd7bbfef4.png)
 
 By looking at this diagram, we can see that there are large gaps at 2,4,8 and 16 between these critical $\beta$ values. These show that, depending at the resolution you want to look at your dataset with, there are 2,4,8 or 16 clusters there. However, the largest gap occurs at 16, so it means that there are 16 clusters in this dataset, that can be taken as the true number of clusters. To get an accurate plot, it is advised to use small values for alpha and purturb.
-
+Also using :
+```python
+{ 
+  model.return_true_number()
+}
+```
+returns the value 16 for this dataset.
 
 
