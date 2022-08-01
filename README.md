@@ -75,3 +75,7 @@ Also using :
 returns the value 16 for this dataset.
 
 
+------------------------------------------------------------
+# Orthogonal Non-negative Matrix Factorization (ONMF)
+
+DA can also be used to solve the ONMF problem.
