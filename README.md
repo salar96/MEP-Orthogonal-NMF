@@ -13,6 +13,7 @@ Deterministic Annealing (DA) is a clustering, or in a more accurate definition, 
 { 
   from Deterministic_Annealing import DA
   model=DA(k,alpha=alpha,purturb=purturb,verbos=verbos,normalize=normalize,tol=tol)
-  Y,P=model.classify()
+  model.fit(X,Px='auto')
+  Y,P=model.cluster()
 }
 ```
