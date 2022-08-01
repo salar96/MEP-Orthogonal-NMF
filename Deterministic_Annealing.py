@@ -124,7 +124,7 @@ class DA:
         
     
 
-    def classify(self):
+    def cluster(self):
   
         y_list=[] # a list to save codevectors over betas
         beta_list=[] # list of all betas
