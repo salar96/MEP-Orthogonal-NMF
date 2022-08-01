@@ -55,16 +55,16 @@ Where in this animation below, you can see how by increasing the value of $\beta
 ```
 ![ezgif com-gif-maker(1)](https://user-images.githubusercontent.com/50495107/182254523-c07d2473-0a44-4261-b90f-74c6b022b1d7.gif)
 
-These critical $\beta$ values provide useful information about our dataset. By plotting them using the command below, we can determine the true number of clusters in our dataset:
+These critical $\beta$ values provide useful information about our dataset. By plotting the log of these values using the command below, we can determine the true number of clusters in our dataset:
 
 ```python
 { 
-  model.plot_criticals()
+  model.plot_criticals(log=True)
 }
 ```
 ![index](https://user-images.githubusercontent.com/50495107/182256886-e245ce07-2e2e-4fa5-9515-38abd7bbfef4.png)
 
-By looking at this diagram, we can see that there are large gaps at 2,4,8 and 16 between these critical $\beta$ values. These show that, depending at the resolution you want to look at your dataset with, there are 2,4,8 or 16 clusters there. However, the largest gap occurs at 16, so it means that there are 16 clusters in this dataset, that can be taken as the true number of clusters.
+By looking at this diagram, we can see that there are large gaps at 2,4,8 and 16 between these critical $\beta$ values. These show that, depending at the resolution you want to look at your dataset with, there are 2,4,8 or 16 clusters there. However, the largest gap occurs at 16, so it means that there are 16 clusters in this dataset, that can be taken as the true number of clusters. To get an accurate plot, it is advised to use small values for alpha and purturb.
 
 
 
