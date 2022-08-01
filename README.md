@@ -6,7 +6,7 @@ This code is presented as supplimentary material for our paper:
 
 ------------------------------------------------------------
 # Deterministic Annealing
-Deterministic Annealing (DA) is a clustering, or in a more accurate definition, a facility allocation algorithm that clusters data points into several groups of different sizes, so that the cumulative distance of each data point to its assigned resource is minimized (for details on this algorithm, please refere to our paper mentioned above). To cluster data into k clusters, just use the code snippet here:
+Deterministic Annealing (DA) is a clustering, or in a more accurate definition, a facility allocation algorithm that clusters data points into several groups of different sizes, so that the cumulative distance of each data point to its assigned resource is minimized (for details on this algorithm, please refere to our paper mentioned above). To cluster data into $k$ clusters, just use the code snippet here:
 
 
 | parameter      | description |
