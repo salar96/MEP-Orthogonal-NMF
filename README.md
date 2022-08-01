@@ -6,4 +6,12 @@ This code is presented as supplimentary material for our paper:
 
 ------------------------------------------------------------
 # Deterministic Annealing
-Deterministic Annealing (DA) is a clustering, or in a more accurate definition, a facility allocation algorithm that clusters data points into several groups of different sizes, so that the cumulative distance of each data point to its assigned resource is minimized
+Deterministic Annealing (DA) is a clustering, or in a more accurate definition, a facility allocation algorithm that clusters data points into several groups of different sizes, so that the cumulative distance of each data point to its assigned resource is minimized.
+
+
+```python
+{ 
+  model=DA(k,alpha=alpha,purturb=purturb,verbos=verbos,normalize=normalize,tol=tol)
+  Y,P=model.classify()
+}
+```
