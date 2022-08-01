@@ -40,10 +40,31 @@ Deterministic Annealing (DA) is a clustering, or in a more accurate definition, 
 }
 ```
 For example, for a dataset that consists of 16 psudu-symmetric clusters as illustrated if Fig 1, the DA finds the cluster centers:
+```python
+{ 
+  model.plot()
+}
+```
 ![index](https://user-images.githubusercontent.com/50495107/182255163-d78a7d72-ea34-4a4f-ba32-5afc1fbfcd38.png)
 
 Where in this animation below, you can see how by increasing the value of $\beta$ these cluster centers split. In the beginning, there is only one cluster center, and as the value of $\beta$ reaches a critical value for a cluster center, that cluster center will bifurcate, Here animation_frame is equivalent to $\beta$ values.
+```python
+{ 
+  model.animation()
+}
+```
 ![ezgif com-gif-maker(1)](https://user-images.githubusercontent.com/50495107/182254523-c07d2473-0a44-4261-b90f-74c6b022b1d7.gif)
+
+These critical $\beta$ values provide useful information about our dataset. By plotting them using the command below, we can determine the true number of clusters in our dataset:
+
+```python
+{ 
+  model.plot_criticals()
+}
+```
+![index](https://user-images.githubusercontent.com/50495107/182256886-e245ce07-2e2e-4fa5-9515-38abd7bbfef4.png)
+
+By looking at this diagram, we can see that there are large gaps at 2,4,8 and 16 between these critical $\beta$ values. These show that, depending at the resolution you want to look at your dataset with, there are 2,4,8 or 16 clusters there. However, the largest gap occurs at 16, so it means that there are 16 clusters in this dataset, that can be taken as the true number of clusters.
 
 
 
