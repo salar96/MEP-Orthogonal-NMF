@@ -74,6 +74,13 @@ Also using :
 ```
 returns the value 16 for this dataset.
 
+The command mesh_plot specifies which cluster center the data belong to. For example, for a given dataset of 15 clusters, we get:
+```python
+{ 
+  model.mesh_plot()
+}
+```
+![index](https://user-images.githubusercontent.com/50495107/182267869-cd768f93-43d9-4338-815c-4c171fe0c761.png)
 
 ------------------------------------------------------------
 # Orthogonal Non-negative Matrix Factorization (ONMF)
