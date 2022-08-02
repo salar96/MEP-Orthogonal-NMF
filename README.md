@@ -101,6 +101,17 @@ The resulting pie chart indicates that the cluster Y_6 is an outlier.
 ------------------------------------------------------------
 # Orthogonal Non-negative Matrix Factorization (ONMF)
 
+The orthogonal NMF (ONMF) poses the following problem:
+
+$$
+\begin{align}
+    \min \quad &D(X,WH) \\ 
+    \textrm{s.t.} \quad &W^{\intercal}W=I \quad \text{or} \quad HH^{\intercal}=I \\ 
+    & W_{ij},H_{ij} \geq 0 \quad \forall \ i,j 
+\end{align}
+$$
+
+
 DA can also be used to solve the ONMF problem.
 | input   | description        |
 | ----------- | ----------- |
