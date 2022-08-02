@@ -82,6 +82,18 @@ The command mesh_plot specifies which cluster center the data belong to. For exa
 ```
 ![index](https://user-images.githubusercontent.com/50495107/182267869-cd768f93-43d9-4338-815c-4c171fe0c761.png)
 
+The Mass-Constrained DA allows capturing unbalanced datasets where one or more clusters have significantly lower number of data points compared with the other clusters. The weight of each cluster can be shown using the pie_chart command. This is very useful for outlier detection applications. For example, for a given dataset like:
+![index](https://user-images.githubusercontent.com/50495107/182268844-937ec069-8d13-41ed-a4a1-657b20af1732.png)
+
+```python
+{ 
+  model.pie_chart()
+}
+```
+![index](https://user-images.githubusercontent.com/50495107/182268894-4acab555-24dc-4861-a95e-a0f0eb2e7e04.png)
+
+The resulting pie chart indicates that the cluster y_1 is an outlier.
+
 ------------------------------------------------------------
 # Orthogonal Non-negative Matrix Factorization (ONMF)
 
