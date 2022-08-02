@@ -46,14 +46,16 @@ For example, for a dataset that consists of 16 psudu-symmetric clusters as illus
   model.plot()
 }
 ```
-![index](https://user-images.githubusercontent.com/50495107/182255163-d78a7d72-ea34-4a4f-ba32-5afc1fbfcd38.png)
+<img src="https://user-images.githubusercontent.com/50495107/182255163-d78a7d72-ea34-4a4f-ba32-5afc1fbfcd38.png" width="600" height="600" />
 
 Where in this animation below, you can see how by increasing the value of $\beta$ these cluster centers split. In the beginning, there is only one cluster center, and as the value of $\beta$ reaches a critical value for a cluster center, that cluster center will bifurcate, Here animation_frame is equivalent to $\beta$ values.
+
 ```python
 { 
   model.animation()
 }
 ```
+
 ![ezgif com-gif-maker(1)](https://user-images.githubusercontent.com/50495107/182254523-c07d2473-0a44-4261-b90f-74c6b022b1d7.gif)
 
 These critical $\beta$ values provide useful information about our dataset. By plotting the log of these values using the command below, we can determine the true number of clusters in our dataset:
@@ -100,3 +102,24 @@ The resulting pie chart indicates that the cluster Y_6 is an outlier.
 # Orthogonal Non-negative Matrix Factorization (ONMF)
 
 DA can also be used to solve the ONMF problem.
+| input   | description        |
+| ----------- | ----------- |
+| X | Data matrix $X \in \mathbb{R}^{d \times n}_{+}$ where $d$ is each data point's dimension and $n$ is the number of data points|
+
+
+| output   | description        |
+| ----------- | ----------- |
+| W | Features matrix $W \in \mathbb{R}^{d \times k}_{+}$ |
+| H | Mixing matrix $H \in \mathbb{R}^{k \times n}_{+}$ |
+| model | DA model associated with the data matrix. Can be used to identify the true number of features |
+```python
+{ 
+  from onmf_DA import ONMF_DA
+  W,H,model=ONMF_DA.func(X,k,alpha=alpha,purturb=p,tol=tol)
+}
+```
+For $H$-orthogonal, put $X$ and for $W$-orthogonal, put $X^{\intercal}$ as input.
+
+
+<img src="https://user-images.githubusercontent.com/50495107/182271297-015ab74c-69d6-4f79-b246-b5de6a709601.png" width="800" height="300" />
+
