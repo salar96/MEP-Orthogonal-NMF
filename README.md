@@ -1,4 +1,4 @@
-# MCDA-ONMF
+# MEP-ONMF
 Mass-Constrained Deterministic Annealing Orthogonal Non-negative Matrix Factorization
 
 This code is presented as supplimentary material for our paper:
