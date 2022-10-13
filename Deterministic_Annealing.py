@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-#___________________In Coding We Believe___________________
 #___________________Salar Basiri___________________________
 #___________________Deterministic Annealing________________
 
