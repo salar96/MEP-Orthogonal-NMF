@@ -1,8 +1,7 @@
 # MEP-ONMF
 Maximum-Entropy-Principle Orthogonal Non-negative Matrix Factorization
 
-This code is presented as supplimentary material for our paper:
-
+[This code is presented as supplimentary material for our paper]:
 ["Orthogonal Non-negative Matrix Factorization: a Maximum-Entropy-Principle Approach"](https://arxiv.org/abs/2210.02672)
 ------------------------------------------------------------
 # Deterministic Annealing Clustering
