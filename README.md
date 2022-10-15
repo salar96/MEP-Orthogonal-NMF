@@ -55,7 +55,9 @@ Where in this animation below, you can see how by increasing the value of $\beta
 }
 ```
 
-![ezgif com-gif-maker(1)](https://user-images.githubusercontent.com/50495107/182254523-c07d2473-0a44-4261-b90f-74c6b022b1d7.gif)
+
+https://user-images.githubusercontent.com/50495107/195967277-7348200e-4e6a-44a1-94ca-ed8e9d8aec15.mp4
+
 
 These critical $\beta$ values provide useful information about our dataset. By plotting the log of these values using the command below, we can determine the true number of clusters in our dataset:
 
