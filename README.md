@@ -4,17 +4,17 @@ Maximum-Entropy-Principle Orthogonal Non-negative Matrix Factorization
 [This code is presented as supplimentary material for our paper]:
 ["Orthogonal Non-negative Matrix Factorization: a Maximum-Entropy-Principle Approach"](https://arxiv.org/abs/2210.02672)
 ------------------------------------------------------------
-# Deterministic Annealing Clustering
-Deterministic Annealing (DA) is a clustering, or in a more accurate definition, a facility allocation algorithm that clusters data points into several groups of different sizes, so that the cumulative distance of each data point to its assigned resource is minimized (for details on this algorithm, please refere to our paper mentioned above). To cluster data into $k$ clusters, just use the code snippet here:
+# Deterministic Annealing Clustering (Maximum-Entropy-Principle Clustering)
+Deterministic Annealing (DA) is a clustering, or in a more accurate definition, a facility location algorithm that clusters data points into several groups of different sizes, so that the cumulative distance of each data point to its assigned resource is minimized (for details on this algorithm, please refere to our paper mentioned above). To cluster data into $k$ clusters, just use the code snippet here:
 
 
 | parameter      | description |
 | ----------- | ----------- |
 | k      | number of clusters we want to partition our data in       |
 | tol   | The tolerence at which bifurcation happens for the critical cluster - smaller values more stable, but results in a slower performance        |
-| max_iter   | maximum number of iterations thatthe code waits until the convergence of parameters        |
+| max_iter   | maximum number of iterations that the code waits until the convergence of parameters        |
 | alpha   | the value at which $\beta$ is multiplied by at the end of each convergence. Smaller values results in a more stable performance, but slows down the code        |
-| purturb   | the rate at which we purturb new cluster centers. Too large or too small values results in instability        |
+| purturb   | the rate at which we purturb new cluster centers        |
 | beta_final   | the final $\beta$ value that we want to stop the algorithm at. If not specified, it is determined automatically        |
 | verbos   | whether to print out iterations' information         |
 | normalize   | whether to 'l2' normalize the input data        |
