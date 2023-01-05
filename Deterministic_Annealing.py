@@ -89,7 +89,7 @@ class DA:
 
 
 
-    def cluster(self,express=False):
+    def cluster(self,express=True):
             y_list=[] # a list to save codevectors over betas
             beta_list=[];Beta=0; # list of all betas
             y_list.append(self.Y);beta_list.append(0)    
