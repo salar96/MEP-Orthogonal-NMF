@@ -17,9 +17,9 @@ def has_changed(x,y,tol=1e-3):
 def has_stabled(x,y,tol=1e-3):
     return np.linalg.norm(x-y)/np.linalg.norm(x)<tol
 
-def divide(N, P):
-    out = np.true_divide(N, P)
-    out[np.isclose(P, 0)] = 0
+def divide (X, l):
+    out = np.copy(X)
+    np.divide(out, l, where = np.logical_not(np.isclose(l, 0)), out = out)
     return out
 
 def flatten(t):
@@ -67,7 +67,7 @@ class DA:
         flag=False
         m, self.n = np.shape(X)
         self.d=m
-        l = np.dot(X, X.T);l_sqrt = np.sqrt(l);
+        l = np.sum(np.square(X), axis=0, keepdims=True);l_sqrt = np.sqrt(l);
         weights=l[0]
         weights=weights/weights.sum()
         if self.normalize:
