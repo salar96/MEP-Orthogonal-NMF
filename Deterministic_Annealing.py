@@ -149,7 +149,6 @@ class DA:
                     Beta=1e100
                 else:
                   if (1.0-com)<1e-18 and k_n==self.K: 
-                    print(f"stopping criteria met")
                     break     
       
                 if self.VERBOS:
