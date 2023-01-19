@@ -94,7 +94,7 @@ class DA:
             beta_list=[];Beta=0; # list of all betas
             y_list.append(self.Y);beta_list.append(0)    
             k_n=1 # at first we just have one codevector
-            Y_old=np.random.rand(self.d,k_n*2)*1e6;P_old=np.random.rand(2,2);
+            Y_old=np.random.rand(self.d,k_n*2)*1e6;P_old=np.random.rand(2,2);y_old=Y_old
             beta_devide=[] #list to store critical betas
             if not express:
               Beta=0.45/np.max(np.cov(self.X))
@@ -158,10 +158,10 @@ class DA:
                   k_n=self.Y.shape[1]
                 else:
                   if check_change:
-                      changed=has_changed(Y_old,self.Y,self.tol)
+                      changed=has_changed(y_old,self.Y,self.tol)
                       if changed:
                           check_change=False
-                  stabled=has_stabled(Y_old,self.Y,self.tol)       
+                  stabled=has_stabled(y_old,self.Y,self.tol)       
                   if not express:
                     Beta=Beta*self.alpha
                   if k_n<self.K:
@@ -173,11 +173,12 @@ class DA:
                               k_n=self.Y.shape[1]
                               check_change=True
                               beta_devide.append(Beta)
-                Y_old=self.Y               
+                y_old=self.Y               
             self.y_list=y_list
             self.beta_list=beta_list
             self.beta_devide=beta_devide
             self.P=np.round(P)
+
             return self.Y,self.P
     def plot(self,size=(12,10)):
         assert self.X.shape[0]==2,f'Can only plot 2-D data points, but the dimension here is {self.X.shape[0]}.'
