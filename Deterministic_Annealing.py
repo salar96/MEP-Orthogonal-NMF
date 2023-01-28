@@ -39,7 +39,7 @@ def bifurcate(D,x,y,p,px,py,purturb):
     # u=y[:,i][:,None]+(np.random.uniform(-purturb, purturb, size=y.shape))
     py_d=py.copy()
     py_d[i]=py_d[i]/2
-    return np.append(y,u[:,0].reshape(-1,1),axis=1),np.append(py_d,py_d[i])
+    return np.append(y,u[:,0].reshape(-1,1),axis=1),np.append(py_d,py_d[i]),1/(2*R[i])
 
 
 class DA:
@@ -154,8 +154,9 @@ class DA:
                 if self.VERBOS:
                     print(f'Beta: {Beta} cost:{cost}')
                 if express:
-                  self.Y,self.Py=bifurcate(D,self.X,self.Y,P,self.Px,self.Py,self.purturb)
+                  self.Y,self.Py,R=bifurcate(D,self.X,self.Y,P,self.Px,self.Py,self.purturb)
                   k_n=self.Y.shape[1]
+                  beta_devide.append(R)
                 else:
                   if check_change:
                       changed=has_changed(y_old,self.Y,self.tol)
@@ -167,7 +168,7 @@ class DA:
                   if k_n<self.K:
                       if changed:
                           if stabled:
-                              self.Y,self.Py=bifurcate(D,self.X,self.Y,P,self.Px,self.Py,self.purturb)
+                              self.Y,self.Py,_=bifurcate(D,self.X,self.Y,P,self.Px,self.Py,self.purturb)
                               if self.VERBOS:
                                   print(f"\nDevision occured: to {self.Y.shape[1]} at {Beta}\n")
                               k_n=self.Y.shape[1]
@@ -232,4 +233,4 @@ class DA:
         plt.title('Critical Betas over number of clusters')
         plt.xlabel('Cluster Number')
     def return_true_number(self):
-      return np.argmax([(self.beta_devide[i+1]/self.beta_devide[i]) for i in range(len(self.beta_devide)-1)])+1
+      return np.argmax([(self.beta_devide[i+1]/self.beta_devide[i]) for i in range(len(self.beta_devide)-1)])
