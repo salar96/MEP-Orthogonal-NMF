@@ -225,12 +225,12 @@ class DA:
     def plot_criticals(self,log=False,size=(6,4)):
         plt.figure(figsize=size)
         if log:
-            plt.scatter(range(1,self.K),np.log(self.beta_devide));plt.grid();plt.xticks(np.arange(1, self.K, 1.0))
-            plt.ylabel('log(Beta)')
+            plt.scatter(range(1,self.K),np.log(self.beta_devide));plt.grid();plt.xticks(np.arange(1, self.K, 1.0),color='black')
+            plt.ylabel('log('+r'$\beta_c$'+')',fontsize=18)
         else:
             plt.scatter(range(1,self.K),(self.beta_devide));plt.grid();plt.xticks(np.arange(1, self.K, 1.0))
             plt.ylabel('Beta')
-        plt.title('Critical Betas over number of clusters')
-        plt.xlabel('Cluster Number')
+        plt.title(r'Critical $\beta$s over number of features',fontsize=18)
+        plt.xlabel('Number of features',fontsize=18)
     def return_true_number(self):
       return np.argmax([(self.beta_devide[i+1]/self.beta_devide[i]) for i in range(len(self.beta_devide)-1)])
